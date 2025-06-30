@@ -1,18 +1,83 @@
+import { ERouteTable } from '@/constants/route-table'
+import { useLesson } from '@/hooks/useLesson'
+import { AntDesign, Ionicons } from '@expo/vector-icons'
+import { router, useLocalSearchParams } from 'expo-router'
 import {
   ActivityIndicator,
   Dimensions,
   Image,
-  ImageBackground,
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native'
-import { AntDesign, Ionicons } from '@expo/vector-icons'
 import RenderHtml from 'react-native-render-html'
-import { router, useLocalSearchParams } from 'expo-router'
-import { ERouteTable } from '@/constants/route-table'
-import { useLesson } from '@/hooks/useLesson'
+
+// Function to decode HTML entities
+const decodeHtmlEntities = (html: string): string => {
+  const entities = {
+    '&lt;': '<',
+    '&gt;': '>',
+    '&amp;': '&',
+    '&quot;': '"',
+    '&#x27;': "'",
+    '&#x2F;': '/',
+    '&#x60;': '`',
+    '&#x3D;': '=',
+    '&nbsp;': ' ',
+    '&apos;': "'",
+  }
+  
+  return html.replace(/&[#\w]+;/g, (entity) => {
+    return entities[entity as keyof typeof entities] || entity
+  })
+}
+
+// Function to clean up HTML structure
+const cleanUpHtml = (html: string): string => {
+  let cleanedHtml = html
+  
+  // Remove unnecessary <br> tags
+  cleanedHtml = cleanedHtml.replace(/<br\s*\/?>/gi, '')
+  
+  // Fix double or multiple angle brackets (<<, <<<, etc.)
+  cleanedHtml = cleanedHtml.replace(/<<+/g, '<')
+  cleanedHtml = cleanedHtml.replace(/>>+/g, '>')
+  
+  // Fix nested paragraph issues - remove <p> tags that wrap headings
+  cleanedHtml = cleanedHtml.replace(/<p>\s*(<h[1-6][^>]*>.*?<\/h[1-6]>)/gi, '$1')
+  cleanedHtml = cleanedHtml.replace(/(<\/h[1-6]>)\s*<\/p>/gi, '$1')
+  
+  // Remove empty <p> tags
+  cleanedHtml = cleanedHtml.replace(/<p>\s*<\/p>/gi, '')
+  
+  // Fix nested <p> tags inside other <p> tags
+  cleanedHtml = cleanedHtml.replace(/<p>\s*<p>/gi, '<p>')
+  cleanedHtml = cleanedHtml.replace(/<\/p>\s*<\/p>/gi, '</p>')
+  
+  // Fix malformed tags (extra spaces, incomplete tags)
+  cleanedHtml = cleanedHtml.replace(/<\s+/g, '<')
+  cleanedHtml = cleanedHtml.replace(/\s+>/g, '>')
+  
+  // Clean up extra whitespace between tags and within text
+  cleanedHtml = cleanedHtml.replace(/>\s+</g, '><')
+  cleanedHtml = cleanedHtml.replace(/\s+/g, ' ')
+  
+  // Ensure proper spacing between block elements
+  cleanedHtml = cleanedHtml.replace(/(<\/h[1-6]>)<(?=[h][1-6])/gi, '$1\n<')
+  cleanedHtml = cleanedHtml.replace(/(<\/h[1-6]>)<p>/gi, '$1\n<p>')
+  cleanedHtml = cleanedHtml.replace(/(<\/p>)<h([1-6])/gi, '$1\n<h$2')
+  cleanedHtml = cleanedHtml.replace(/(<\/p>)<ul>/gi, '$1\n<ul>')
+  cleanedHtml = cleanedHtml.replace(/(<\/ul>)<p>/gi, '$1\n<p>')
+  cleanedHtml = cleanedHtml.replace(/(<\/ul>)<h([1-6])/gi, '$1\n<h$2')
+  
+  // Fix spacing within lists
+  cleanedHtml = cleanedHtml.replace(/<\/li><li>/gi, '</li>\n<li>')
+  cleanedHtml = cleanedHtml.replace(/<ul><li>/gi, '<ul>\n<li>')
+  cleanedHtml = cleanedHtml.replace(/<\/li><\/ul>/gi, '</li>\n</ul>')
+  
+  return cleanedHtml.trim()
+}
 
 const DetailLesson = () => {
   const { coursesId, score, totalScore } = useLocalSearchParams<{
@@ -216,6 +281,14 @@ const DetailLesson = () => {
     },
   }
 
+  if (lessonQuery.data) {
+    // Log the lesson data to the console for debugging
+    console.log('Original Lesson Data:', lessonQuery.data.content);
+    console.log('Decoded Lesson Data:', decodeHtmlEntities(lessonQuery.data.content));
+    console.log('Final Cleaned HTML:', cleanUpHtml(decodeHtmlEntities(lessonQuery.data.content)));
+  }
+  
+
   return (
     <View className="flex-1 h-full bg-gray-50">
       <View className="relative h-[310px]">
@@ -263,7 +336,7 @@ const DetailLesson = () => {
           ) : lessonQuery?.data?.content ? (
             <RenderHtml
               contentWidth={width - 64}
-              source={{ html: lessonQuery.data.content }}
+              source={{ html: cleanUpHtml(decodeHtmlEntities(lessonQuery.data.content)) }}
               tagsStyles={tagsStyles}
               classesStyles={classesStyles}
               defaultTextProps={{
