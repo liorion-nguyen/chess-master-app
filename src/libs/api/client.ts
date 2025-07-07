@@ -1,7 +1,7 @@
 import { AuthRoutes } from '@/libs/api/routes/auth-routes'
 import { useAuthStore } from '@/store/useAuthStore'
 import axios from 'axios'
-import { API_BASE_URL } from '../env'
+import { API_BASE_URL, TENANT_ID } from '../env'
 
 let isRefreshing = false
 let failedQueue: any[] = []
@@ -52,11 +52,12 @@ const refreshToken = async () => {
 }
 
 const API_CLIENT = axios.create({
-  baseURL: API_BASE_URL || 'https://chess-master-be.onrender.com',
+  baseURL: API_BASE_URL || 'https://nestjs-expo-lms.up.railway.app',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'x-tenant-id': TENANT_ID || 'CHESS',
   },
 })
 
