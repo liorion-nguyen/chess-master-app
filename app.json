@@ -68,6 +68,12 @@
           "NSAllowsArbitraryLoads": true
         }
       }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e132ca4c-d409-43e9-b396-8d96091f163e"
+      }
     }
   }
 }
